@@ -259,19 +259,20 @@ textarea.small, input.small { padding: 7px 10px; }
 .print-sheet { display: none; }
 
 @media print {
-  /* Everything on screen goes; the worksheet takes over. */
-  body > * { display: none !important; }
-  .print-sheet, .print-sheet * { display: revert !important; }
+  /* Hide the worksheet's SIBLINGS, never an ancestor of it.
+     `display: none` on a parent removes the whole subtree — a child can't opt
+     back in, which is what printed a blank page the first time round. */
+  .wrap > *:not(.print-sheet) { display: none !important; }
+  .wrap { max-width: none; padding: 0; margin: 0; }
+  html, body { background: #fff; }
+
   .print-sheet {
     display: block !important;
-    position: absolute;
-    inset: 0;
     background: #fff;
     color: #000;
     font-family: Georgia, "Times New Roman", serif;
     font-size: 11.5pt;
     line-height: 1.5;
-    padding: 0;
   }
 
   @page { margin: 18mm 16mm; }
