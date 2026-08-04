@@ -21,9 +21,30 @@ function pickMimeType() {
   return ""; // let the browser choose
 }
 
+// Browsers apply call-centre processing to microphones by default: noise
+// suppression, automatic gain, echo cancellation. It's tuned for phone calls,
+// and on a spoken monologue it dulls the voice and pumps the level — the
+// "underwater" sound you get compared to Audacity, which records raw.
+//
+// So raw is the default here. The noise filter stays available for teachers
+// working in a genuinely noisy room, where trading some clarity for less
+// background hum is the right call.
+const RAW_AUDIO = {
+  echoCancellation: false,
+  noiseSuppression: false,
+  autoGainControl: false,
+};
+
+const FILTERED_AUDIO = {
+  echoCancellation: false,
+  noiseSuppression: true,
+  autoGainControl: true,
+};
+
 export default function Recorder({ onFinish, disabled }) {
   const [devices, setDevices] = useState([]);
   const [deviceId, setDeviceId] = useState("");
+  const [denoise, setDenoise] = useState(false);
   const [state, setState] = useState("idle"); // idle | recording | paused
   const [elapsed, setElapsed] = useState(0);
   const [level, setLevel] = useState(0);
@@ -77,9 +98,8 @@ export default function Recorder({ onFinish, disabled }) {
         audio: {
           deviceId: deviceId ? { exact: deviceId } : undefined,
           channelCount: 1,
-          echoCancellation: false, // it's a monologue, not a call
-          noiseSuppression: true,
-          autoGainControl: true,
+          sampleRate: 48000,
+          ...(denoise ? FILTERED_AUDIO : RAW_AUDIO),
         },
       });
       streamRef.current = stream;
@@ -111,8 +131,13 @@ export default function Recorder({ onFinish, disabled }) {
       };
       tick();
 
+      // Don't let the browser pick a thrifty default bitrate — this is the
+      // master copy everything else is made from.
       const mimeType = pickMimeType();
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const recorder = new MediaRecorder(stream, {
+        ...(mimeType ? { mimeType } : {}),
+        audioBitsPerSecond: 128000,
+      });
       recorderRef.current = recorder;
       recorder.ondataavailable = (e) => {
         if (e.data?.size > 0) chunksRef.current.push(e.data);
@@ -205,6 +230,21 @@ export default function Recorder({ onFinish, disabled }) {
               Названия микрофонов появятся после первой записи, когда вы разрешите доступ.
             </p>
           )}
+
+          <div className="checkline">
+            <input
+              id="denoise"
+              type="checkbox"
+              checked={denoise}
+              onChange={(e) => setDenoise(e.target.checked)}
+            />
+            <label htmlFor="denoise">Подавлять фоновый шум</label>
+          </div>
+          <p className="hint" style={{ marginTop: 4 }}>
+            Обычно выключено: звук получается чище и естественнее. Включайте, только если в
+            комнате шумно — голос станет глуше.
+          </p>
+
           <div style={{ marginTop: 16 }}>
             <button onClick={start} disabled={disabled}>
               ● Начать запись

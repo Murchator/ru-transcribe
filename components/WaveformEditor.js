@@ -2,11 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  SAMPLE_RATE,
   computePeaks,
   cropRange,
   deleteRange,
-  encodeMp3,
+  encodeForListening,
   formatClock,
   formatDuration,
   segmentsLength,
@@ -17,7 +16,7 @@ import {
 // flat whether the recording is two minutes or two hours.
 const PLAY_WINDOW_SEC = 120;
 
-export default function WaveformEditor({ pcm, segments, onChange, disabled, exportName }) {
+export default function WaveformEditor({ pcm, rate, segments, onChange, disabled, exportName }) {
   const [history, setHistory] = useState([]);
   const [exporting, setExporting] = useState(false);
   const [selection, setSelection] = useState(null); // [a, b] in samples
@@ -37,7 +36,7 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
   const anchorRef = useRef({ ctxTime: 0, pos: 0 });
 
   const total = segmentsLength(segments);
-  const duration = total / SAMPLE_RATE;
+  const duration = total / rate;
 
   /* ---------------------------------------------------------- sizing */
 
@@ -151,10 +150,10 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
   function playFrom(from, to) {
     const ctx = ensureCtx();
     const token = ++tokenRef.current;
-    const windowEnd = Math.min(to, from + PLAY_WINDOW_SEC * SAMPLE_RATE);
+    const windowEnd = Math.min(to, from + PLAY_WINDOW_SEC * rate);
 
     const src = ctx.createBufferSource();
-    src.buffer = toAudioBuffer(ctx, pcm, segments, from, windowEnd);
+    src.buffer = toAudioBuffer(ctx, pcm, rate, segments, from, windowEnd);
     src.connect(ctx.destination);
     src.onended = () => {
       if (tokenRef.current !== token) return; // superseded by a stop or a new play
@@ -173,7 +172,7 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
     cancelAnimationFrame(rafRef.current);
     const tick = () => {
       const { ctxTime, pos } = anchorRef.current;
-      setPlayhead(Math.min(to, pos + (ctx.currentTime - ctxTime) * SAMPLE_RATE));
+      setPlayhead(Math.min(to, pos + (ctx.currentTime - ctxTime) * rate));
       rafRef.current = requestAnimationFrame(tick);
     };
     tick();
@@ -185,7 +184,7 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
       return;
     }
     if (selection) playFrom(selection[0], selection[1]);
-    else playFrom(playhead >= total - SAMPLE_RATE * 0.2 ? 0 : playhead, total);
+    else playFrom(playhead >= total - rate * 0.2 ? 0 : playhead, total);
   }
 
   /* ----------------------------------------------------------- edits */
@@ -210,7 +209,7 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
   async function exportMp3() {
     setExporting(true);
     try {
-      const blob = await encodeMp3(pcm, segments, 0, total);
+      const blob = await encodeForListening(pcm, rate, segments);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -260,8 +259,8 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
 
   /* ------------------------------------------------------------- ui */
 
-  const selDuration = selection ? (selection[1] - selection[0]) / SAMPLE_RATE : 0;
-  const hasSelection = selection && selection[1] - selection[0] > SAMPLE_RATE * 0.05;
+  const selDuration = selection ? (selection[1] - selection[0]) / rate : 0;
+  const hasSelection = selection && selection[1] - selection[0] > rate * 0.05;
 
   return (
     <div>
@@ -278,7 +277,7 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
       </div>
 
       <div className="wavemeta">
-        <span>{formatClock(playhead / SAMPLE_RATE)}</span>
+        <span>{formatClock(playhead / rate)}</span>
         <span className="hint" style={{ margin: 0 }}>
           {hasSelection
             ? `Выделено ${formatClock(selDuration)}`
