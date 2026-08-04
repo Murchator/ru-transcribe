@@ -230,9 +230,82 @@ canvas.wave { display: block; touch-action: none; cursor: crosshair; user-select
 
 .footnote { color: var(--muted); font-size: 13px; text-align: center; margin-top: 28px; }
 
+/* --- exercise type picker --- */
+
+.typegrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 2px 14px;
+  margin-top: 10px;
+}
+.typegrid .checkline { margin-top: 6px; }
+.typegrid .checkline.off label { color: var(--muted); }
+
+/* --- inline editing of results --- */
+
+.editrow { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+.editrow input, .editrow textarea { font-size: 14.5px; }
+.editrow textarea { min-height: 44px; }
+.rowdel {
+  background: none; border: 1px solid var(--line); color: var(--muted);
+  padding: 8px 10px; border-radius: 6px; font-weight: 400; flex: 0 0 auto;
+}
+.rowdel:hover:not(:disabled) { background: #fdecea; color: #8a2318; filter: none; }
+textarea.small, input.small { padding: 7px 10px; }
+.editlist { margin-bottom: 18px; }
+
+/* --- the printed worksheet --- */
+
+.print-sheet { display: none; }
+
 @media print {
-  .panel, .toolbar, .tabs, header.site p, .drop, button { display: none !important; }
-  .printable, .printable * { display: revert !important; }
-  .wrap { max-width: none; padding: 0; }
-  body { background: #fff; }
+  /* Everything on screen goes; the worksheet takes over. */
+  body > * { display: none !important; }
+  .print-sheet, .print-sheet * { display: revert !important; }
+  .print-sheet {
+    display: block !important;
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    color: #000;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 11.5pt;
+    line-height: 1.5;
+    padding: 0;
+  }
+
+  @page { margin: 18mm 16mm; }
+
+  .print-sheet h1 { font-size: 18pt; margin: 0 0 2mm; }
+  .print-sheet .meta { font-size: 9pt; color: #555; margin: 0 0 7mm; font-family: sans-serif; }
+  .print-sheet h2 {
+    font-size: 13pt; margin: 0 0 3mm;
+    padding-bottom: 1.5mm; border-bottom: 1px solid #000;
+    break-after: avoid;
+  }
+  .print-sheet h3 { font-size: 11.5pt; margin: 4mm 0 2mm; break-after: avoid; }
+  .print-sheet section { margin-bottom: 8mm; break-inside: auto; }
+  .print-sheet p { margin: 0 0 3mm; orphans: 3; widows: 3; }
+  .print-sheet ul, .print-sheet ol { margin: 0 0 3mm; padding-left: 7mm; }
+  .print-sheet li { margin-bottom: 2mm; break-inside: avoid; }
+
+  .print-sheet table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+  .print-sheet th {
+    text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid #000; padding: 1.5mm 2mm; font-family: sans-serif;
+  }
+  .print-sheet td { padding: 1.5mm 2mm; border-bottom: 1px solid #ddd; vertical-align: top; }
+  .print-sheet tr { break-inside: avoid; }
+  .print-sheet .sub { font-size: 9pt; color: #555; }
+
+  .print-sheet .instruction { font-style: italic; color: #333; margin-bottom: 2mm; }
+  .print-sheet .exset { margin-bottom: 6mm; break-inside: avoid-page; }
+  /* Room to write the answer in. */
+  .print-sheet .writeline {
+    display: inline-block; width: 28mm; border-bottom: 1px solid #999; margin-left: 3mm;
+  }
+
+  /* The key is the teacher's copy — own page, easy to keep back. */
+  .print-sheet .answerkey { break-before: page; }
+  .print-sheet .answerkey p { font-size: 10pt; margin-bottom: 2.5mm; }
 }

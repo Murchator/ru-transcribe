@@ -146,10 +146,56 @@ month.
 
 When it finishes you get tabs:
 
-- **Text** — the clean transcript
-- **Corrections** — every change the app made, so you can check it
-- **Notes**, **Vocabulary**, **Exercises** — teaching materials
-- **Raw output** — the transcript before correction
+- **Текст** — the clean transcript
+- **Исправления** — every change the app made, so you can check it
+- **Конспект**, **Лексика**, **Упражнения** — teaching materials
+- **Без обработки** — the transcript before correction
+
+### Choosing the exercises
+
+Under **Создать материалы** there's a list of exercise types. Tick up to four:
+
+Лексика в контексте · Падежные окончания · Глаголы движения · Виды глагола ·
+Видовые пары · Спряжение глаголов · Предлоги · Вопросы по тексту ·
+Правда или неправда · Говорение · Письменное задание
+
+Five exercises are made for each type you tick, all built from the actual
+lesson text. Four is the cap because beyond that each type gets too thin to be
+worth doing.
+
+### Fixing mistakes
+
+Press **Править**. Everything becomes editable — not just the transcript, but
+the summary, the vocabulary table and every exercise. Press **Готово** when
+you're finished.
+
+- **Текст** — a plain box; a blank line separates paragraphs
+- **Конспект** — title, summary, and each list one item per line
+- **Лексика** — a row per word, with ✕ to delete and a button to add
+- **Упражнения** — question and answer separately, per item
+
+If you've already made the materials, a yellow note offers **Пересоздать по
+новому тексту**, which rebuilds them from your corrections. Skip it for small
+fixes — it costs a few cents each time.
+
+Nothing is saved anywhere. **Download what you want to keep before closing the
+tab.**
+
+### Printing and PDF
+
+**Печать или PDF** prints the whole worksheet, not just the tab you're looking
+at: summary, text, vocabulary and exercises.
+
+Two things are arranged for the classroom:
+
+- **Exercises print without answers**, with a line to write on.
+- **The answer key goes on its own last page**, so you can hand out the front
+  sheets and keep the last one.
+
+Headings follow the student's level: **A1 and A2 get English headings** (Text,
+Vocabulary, Answer key) so beginners can navigate the page. **B1 and above get
+a fully Russian sheet** — at that level the instructions are useful input in
+themselves. Set this in `lib/labels.js`.
 
 ### Writing the text first, recording after
 

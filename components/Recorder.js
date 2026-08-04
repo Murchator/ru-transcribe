@@ -117,6 +117,12 @@ export default function Recorder({ onFinish, disabled }) {
       const data = new Uint8Array(analyser.fftSize);
 
       const tick = () => {
+        // Keep recording, but stop repainting while the tab is in the
+        // background — the queued renders made the page hang on return.
+        if (document.hidden) {
+          rafRef.current = requestAnimationFrame(tick);
+          return;
+        }
         analyser.getByteTimeDomainData(data);
         let sum = 0;
         for (let i = 0; i < data.length; i++) {

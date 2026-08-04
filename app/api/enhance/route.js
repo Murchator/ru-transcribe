@@ -1,5 +1,6 @@
 import { isAuthorized, unauthorized } from "@/lib/auth";
 import { chatJSON } from "@/lib/openai";
+import { DEFAULT_TYPES, EXERCISE_TYPES, MAX_TYPES } from "@/lib/exercises";
 import {
   correctionSystemPrompt,
   NOTES_SYSTEM,
@@ -18,7 +19,14 @@ export async function POST(request) {
   if (!isAuthorized(request)) return unauthorized();
 
   const body = await request.json().catch(() => ({}));
-  const { task, text, glossary = [], level = "B1", removeFillers = true } = body;
+  const {
+    task,
+    text,
+    glossary = [],
+    level = "B1",
+    removeFillers = true,
+    exerciseTypes = [],
+  } = body;
 
   if (!text || !String(text).trim()) {
     return Response.json({ error: "Нет текста для обработки." }, { status: 400 });
@@ -32,10 +40,22 @@ export async function POST(request) {
         return Response.json(await chatJSON({ system: NOTES_SYSTEM, user: capped(text) }));
       case "vocab":
         return Response.json(await chatJSON({ system: vocabSystem(level), user: capped(text) }));
-      case "exercises":
+      case "exercises": {
+        const chosen = exerciseTypes
+          .map((id) => EXERCISE_TYPES.find((t) => t.id === id))
+          .filter(Boolean)
+          .slice(0, MAX_TYPES);
+        const types = chosen.length
+          ? chosen
+          : EXERCISE_TYPES.filter((t) => DEFAULT_TYPES.includes(t.id));
         return Response.json(
-          await chatJSON({ system: exercisesSystem(level), user: capped(text), temperature: 0.5 })
+          await chatJSON({
+            system: exercisesSystem(level, types),
+            user: capped(text),
+            temperature: 0.5,
+          })
         );
+      }
       default:
         return Response.json({ error: `Неизвестная задача «${task}».` }, { status: 400 });
     }

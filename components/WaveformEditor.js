@@ -171,6 +171,12 @@ export default function WaveformEditor({ pcm, rate, segments, onChange, disabled
 
     cancelAnimationFrame(rafRef.current);
     const tick = () => {
+      // A hidden tab doesn't need a moving playhead, and leaving the loop
+      // running there is what made the page briefly unresponsive on return.
+      if (document.hidden) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       const { ctxTime, pos } = anchorRef.current;
       setPlayhead(Math.min(to, pos + (ctx.currentTime - ctxTime) * rate));
       rafRef.current = requestAnimationFrame(tick);

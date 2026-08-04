@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import NotesComposer from "@/components/NotesComposer";
 import Recorder from "@/components/Recorder";
+import PrintSheet from "@/components/PrintSheet";
 import Results from "@/components/Results";
 import WaveformEditor from "@/components/WaveformEditor";
 import {
@@ -12,6 +13,7 @@ import {
   fullSegments,
   segmentsLength,
 } from "@/lib/audio";
+import { DEFAULT_TYPES, EXERCISE_TYPES, MAX_TYPES } from "@/lib/exercises";
 import { plural } from "@/lib/ru";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
@@ -84,6 +86,7 @@ function App() {
   const [level, setLevel] = useState("B1");
   const [removeFillers, setRemoveFillers] = useState(true);
   const [makeExtras, setMakeExtras] = useState(true);
+  const [exerciseTypes, setExerciseTypes] = useState(DEFAULT_TYPES);
 
   // Audio
   const [source, setSource] = useState(null); // { name, pcm }
@@ -167,15 +170,37 @@ function App() {
   /* ---------------------------------------------------------- pipelines */
 
   /** Notes, vocabulary and exercises from a finished text. */
-  async function addMaterials(base) {
-    if (!makeExtras) return base;
+  async function addMaterials(base, force = false) {
+    if (!makeExtras && !force) return base;
     setStatus("Составляем конспект, лексику и упражнения…");
     const [notes, vocab, exercises] = await Promise.all([
       post("/api/enhance", { task: "notes", text: base.text, level }).catch(() => null),
       post("/api/enhance", { task: "vocab", text: base.text, level }).catch(() => null),
-      post("/api/enhance", { task: "exercises", text: base.text, level }).catch(() => null),
+      post("/api/enhance", { task: "exercises", text: base.text, level, exerciseTypes }).catch(
+        () => null
+      ),
     ]);
-    return { ...base, notes, vocab, exercises };
+    return { ...base, notes, vocab, exercises, edited: false };
+  }
+
+  /** The teacher corrected something — text, notes, vocabulary or exercises. */
+  function patchResult(patch) {
+    setResult((r) => (r ? { ...r, ...patch } : r));
+  }
+
+  /** Rebuild notes/vocabulary/exercises from the corrected text. */
+  async function regenerateMaterials() {
+    if (!result) return;
+    setRunning(true);
+    setError("");
+    try {
+      setResult(await addMaterials(result, true));
+      setStatus("Готово.");
+    } catch (err) {
+      setError(err.message || "Что-то пошло не так.");
+    } finally {
+      setRunning(false);
+    }
   }
 
   /** Audio -> transcript -> correction -> materials. */
@@ -517,6 +542,43 @@ function App() {
           <label htmlFor="extras">Сделать конспект, список лексики и упражнения</label>
         </div>
 
+        {makeExtras && (
+          <div style={{ marginTop: 16 }}>
+            <label>Какие упражнения нужны?</label>
+            <p className="hint" style={{ marginBottom: 0 }}>
+              По 5 заданий каждого вида. Не больше {MAX_TYPES} видов за раз — иначе на каждый
+              останется слишком мало.
+            </p>
+            <div className="typegrid">
+              {EXERCISE_TYPES.map((type) => {
+                const on = exerciseTypes.includes(type.id);
+                const full = exerciseTypes.length >= MAX_TYPES && !on;
+                return (
+                  <div className={`checkline${full ? " off" : ""}`} key={type.id}>
+                    <input
+                      id={`ex-${type.id}`}
+                      type="checkbox"
+                      checked={on}
+                      disabled={full}
+                      onChange={() =>
+                        setExerciseTypes(
+                          on
+                            ? exerciseTypes.filter((x) => x !== type.id)
+                            : [...exerciseTypes, type.id]
+                        )
+                      }
+                    />
+                    <label htmlFor={`ex-${type.id}`}>{type.ru}</label>
+                  </div>
+                );
+              })}
+            </div>
+            {exerciseTypes.length === 0 && (
+              <p className="hint">Ничего не выбрано — упражнений не будет.</p>
+            )}
+          </div>
+        )}
+
         <div style={{ marginTop: 18 }}>
           {hasScript ? (
             <button onClick={runScript} disabled={busy || !script.trim()}>
@@ -550,12 +612,18 @@ function App() {
           setTab={setTab}
           level={level}
           fileName={source?.name || "lesson"}
+          onChange={patchResult}
+          onRegenerate={regenerateMaterials}
+          busy={busy}
         />
       )}
 
+      {result && <PrintSheet result={result} level={level} />}
+
       <p className="footnote">
         Звук и картинки обрабатываются в вашем браузере и отправляются в OpenAI только для
-        распознавания и написания текста. На сервере ничего не сохраняется.
+        распознавания и написания текста. На сервере ничего не сохраняется — скачайте то, что
+        хотите оставить.
       </p>
     </div>
   );

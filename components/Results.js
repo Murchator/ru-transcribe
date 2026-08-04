@@ -1,9 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import { formatDuration } from "@/lib/audio";
+import { hasAnswers, typeById } from "@/lib/exercises";
 import { plural } from "@/lib/ru";
 
-export default function Results({ result, tab, setTab, level, fileName }) {
+/**
+ * Everything the app produced, in tabs, with an edit mode.
+ *
+ * The teacher is the last word on all of it — a mistranscribed name, a wrong
+ * translation, a clumsy exercise. `onChange` patches the result object held by
+ * the page, so edits flow straight into the downloads and the printed sheet.
+ */
+export default function Results({ result, tab, setTab, level, fileName, onChange, onRegenerate, busy }) {
+  const [editing, setEditing] = useState(false);
+
   const tabs = [
     ["transcript", "Текст"],
     ["corrections", `Исправления (${result.corrections.length})`],
@@ -15,18 +26,20 @@ export default function Results({ result, tab, setTab, level, fileName }) {
     if (id === "notes") return !!result.notes;
     if (id === "vocab") return !!result.vocab;
     if (id === "exercises") return !!result.exercises;
-    // Both only exist when the text came from audio.
-    if (id === "raw") return !!result.raw;
-    if (id === "corrections") return !!result.raw;
+    if (id === "raw" || id === "corrections") return !!result.raw; // only from audio
     return true;
   });
 
   const active = tabs.some(([id]) => id === tab) ? tab : "transcript";
   const base = (fileName || "transcript").replace(/\.[^.]+$/, "");
+  const edit = (patch) => onChange({ ...patch, edited: true });
 
   return (
-    <div className="panel printable">
+    <div className="panel">
       <div className="toolbar">
+        <button className="ghost small" onClick={() => setEditing((v) => !v)}>
+          {editing ? "Готово" : "Править"}
+        </button>
         <button className="ghost small" onClick={() => copy(result.text)}>
           Копировать текст
         </button>
@@ -51,6 +64,7 @@ export default function Results({ result, tab, setTab, level, fileName }) {
         {result.duration != null ? `${formatDuration(result.duration)} звука · ` : ""}
         {result.parts > 1 ? `${plural(result.parts, "часть", "части", "частей")} · ` : ""}
         {plural(result.text.trim().split(/\s+/).length, "слово", "слова", "слов")}
+        {editing ? " · режим правки" : ""}
       </p>
 
       <div className="tabs">
@@ -61,13 +75,36 @@ export default function Results({ result, tab, setTab, level, fileName }) {
         ))}
       </div>
 
-      {active === "transcript" && (
-        <div className="transcript">
-          {result.text.split(/\n{2,}/).map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
+      {result.edited && (result.notes || result.vocab || result.exercises) && (
+        <div className="warn">
+          Вы изменили материалы. Конспект, лексика и упражнения составлены по старому тексту.
+          <div style={{ marginTop: 10 }}>
+            <button className="small" onClick={onRegenerate} disabled={busy}>
+              {busy ? "Обновляем…" : "Пересоздать по новому тексту"}
+            </button>
+          </div>
         </div>
       )}
+
+      {active === "transcript" &&
+        (editing ? (
+          <>
+            <textarea
+              className="script"
+              value={result.text}
+              onChange={(e) => edit({ text: e.target.value })}
+              spellCheck={false}
+              autoFocus
+            />
+            <p className="hint">Пустая строка разделяет абзацы.</p>
+          </>
+        ) : (
+          <div className="transcript">
+            {result.text.split(/\n{2,}/).map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        ))}
 
       {active === "raw" && <div className="transcript">{result.raw}</div>}
 
@@ -89,81 +126,99 @@ export default function Results({ result, tab, setTab, level, fileName }) {
       )}
 
       {active === "notes" && result.notes && (
-        <div>
-          {result.notes.title && <h3 className="section">{result.notes.title}</h3>}
-          <p>{result.notes.summary}</p>
-          <List title="Темы" items={result.notes.topics} />
-          <List title="Ключевые мысли" items={result.notes.keyPoints} />
-          <List title="Вопросы для обсуждения" items={result.notes.discussionQuestions} />
-        </div>
+        <NotesTab
+          notes={result.notes}
+          editing={editing}
+          onChange={(notes) => edit({ notes })}
+        />
       )}
 
       {active === "vocab" && result.vocab && (
-        <table>
-          <thead>
-            <tr>
-              <th>Слово</th>
-              <th>English</th>
-              <th>Пример</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(result.vocab.items || []).map((v, i) => (
-              <tr key={i}>
-                <td className="term">
-                  {v.term}
-                  {v.pos ? <div className="note">{v.pos}</div> : null}
-                </td>
-                <td>
-                  {v.translation}
-                  {v.note ? <div className="note">{v.note}</div> : null}
-                </td>
-                <td>{v.example}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <VocabTab
+          vocab={result.vocab}
+          editing={editing}
+          onChange={(vocab) => edit({ vocab })}
+        />
       )}
 
       {active === "exercises" && result.exercises && (
-        <div>
-          <h3 className="section">Вставьте пропущенное слово</h3>
-          <ol className="clean">
-            {(result.exercises.gapFill || []).map((g, i) => (
-              <li key={i}>
-                {g.sentence} <span className="answer">({g.answer})</span>
-              </li>
-            ))}
-          </ol>
-          <h3 className="section">Вопросы по тексту</h3>
-          <ol className="clean">
-            {(result.exercises.comprehension || []).map((q, i) => (
-              <li key={i}>
-                {q.question} <span className="answer">— {q.answer}</span>
-              </li>
-            ))}
-          </ol>
-          <h3 className="section">Правда или неправда</h3>
-          <ol className="clean">
-            {(result.exercises.trueFalse || []).map((t, i) => (
-              <li key={i}>
-                {t.statement} <span className="answer">— {t.answer ? "правда" : "неправда"}</span>
-              </li>
-            ))}
-          </ol>
-          <h3 className="section">Говорение</h3>
-          <ul className="clean">
-            {(result.exercises.speaking || []).map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
+        <ExercisesTab
+          exercises={result.exercises}
+          level={level}
+          editing={editing}
+          onChange={(exercises) => edit({ exercises })}
+        />
       )}
     </div>
   );
 }
 
-function List({ title, items }) {
+/* ---------------------------------------------------------------- notes */
+
+function NotesTab({ notes, editing, onChange }) {
+  const set = (patch) => onChange({ ...notes, ...patch });
+
+  if (!editing) {
+    return (
+      <div>
+        {notes.title && <h3 className="section">{notes.title}</h3>}
+        <p>{notes.summary}</p>
+        <ReadList title="Темы" items={notes.topics} />
+        <ReadList title="Ключевые мысли" items={notes.keyPoints} />
+        <ReadList title="Вопросы для обсуждения" items={notes.discussionQuestions} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <label htmlFor="n-title">Название</label>
+      <input
+        id="n-title"
+        type="text"
+        value={notes.title || ""}
+        onChange={(e) => set({ title: e.target.value })}
+      />
+      <div style={{ marginTop: 14 }}>
+        <label htmlFor="n-sum">Краткое содержание</label>
+        <textarea
+          id="n-sum"
+          value={notes.summary || ""}
+          onChange={(e) => set({ summary: e.target.value })}
+        />
+      </div>
+      <LinesField label="Темы" items={notes.topics} onChange={(topics) => set({ topics })} />
+      <LinesField
+        label="Ключевые мысли"
+        items={notes.keyPoints}
+        onChange={(keyPoints) => set({ keyPoints })}
+      />
+      <LinesField
+        label="Вопросы для обсуждения"
+        items={notes.discussionQuestions}
+        onChange={(discussionQuestions) => set({ discussionQuestions })}
+      />
+    </div>
+  );
+}
+
+/** A list edited as plain lines — far less fiddly than a row per item. */
+function LinesField({ label, items, onChange }) {
+  return (
+    <div style={{ marginTop: 14 }}>
+      <label>{label}</label>
+      <textarea
+        value={(items || []).join("\n")}
+        onChange={(e) => onChange(e.target.value.split("\n").filter((s) => s.trim()))}
+      />
+      <p className="hint" style={{ marginTop: 4 }}>
+        По одному пункту в строке.
+      </p>
+    </div>
+  );
+}
+
+function ReadList({ title, items }) {
   if (!items?.length) return null;
   return (
     <>
@@ -174,6 +229,175 @@ function List({ title, items }) {
         ))}
       </ul>
     </>
+  );
+}
+
+/* ------------------------------------------------------------ vocabulary */
+
+function VocabTab({ vocab, editing, onChange }) {
+  const items = vocab.items || [];
+  const setItems = (next) => onChange({ ...vocab, items: next });
+  const patch = (i, p) => setItems(items.map((v, j) => (j === i ? { ...v, ...p } : v)));
+
+  if (!editing) {
+    return (
+      <table>
+        <thead>
+          <tr>
+            <th>Слово</th>
+            <th>English</th>
+            <th>Пример</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((v, i) => (
+            <tr key={i}>
+              <td className="term">
+                {v.term}
+                {v.pos ? <div className="note">{v.pos}</div> : null}
+              </td>
+              <td>
+                {v.translation}
+                {v.note ? <div className="note">{v.note}</div> : null}
+              </td>
+              <td>{v.example}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
+  return (
+    <div>
+      {items.map((v, i) => (
+        <div className="editrow" key={i}>
+          <input
+            className="small"
+            style={{ flex: "0 0 22%" }}
+            value={v.term || ""}
+            onChange={(e) => patch(i, { term: e.target.value })}
+            placeholder="слово"
+          />
+          <input
+            className="small"
+            style={{ flex: "0 0 22%" }}
+            value={v.translation || ""}
+            onChange={(e) => patch(i, { translation: e.target.value })}
+            placeholder="English"
+          />
+          <input
+            className="small"
+            value={v.example || ""}
+            onChange={(e) => patch(i, { example: e.target.value })}
+            placeholder="пример"
+          />
+          <button
+            className="rowdel"
+            onClick={() => setItems(items.filter((_, j) => j !== i))}
+            aria-label="Удалить строку"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+      <button
+        className="ghost small"
+        onClick={() => setItems([...items, { term: "", translation: "", example: "" }])}
+      >
+        + Добавить слово
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- exercises */
+
+function ExercisesTab({ exercises, level, editing, onChange }) {
+  const sets = exercises.sets || [];
+  const setSets = (next) => onChange({ ...exercises, sets: next });
+  const patchSet = (si, p) => setSets(sets.map((s, j) => (j === si ? { ...s, ...p } : s)));
+  const patchItem = (si, ii, p) =>
+    patchSet(si, {
+      items: sets[si].items.map((it, j) => (j === ii ? { ...it, ...p } : it)),
+    });
+
+  if (!sets.length) return <p className="hint">Упражнения не получились. Попробуйте ещё раз.</p>;
+
+  return (
+    <div>
+      {sets.map((set, si) => {
+        const type = typeById(set.type);
+        const showAnswers = hasAnswers(set.type);
+        return (
+          <div key={si} className="editlist">
+            <h3 className="section">{type ? type.ru : set.type}</h3>
+            {editing ? (
+              <input
+                className="small"
+                value={set.instruction || ""}
+                onChange={(e) => patchSet(si, { instruction: e.target.value })}
+                placeholder="инструкция"
+                style={{ marginBottom: 10 }}
+              />
+            ) : (
+              set.instruction && <p className="hint">{set.instruction}</p>
+            )}
+
+            {editing ? (
+              <>
+                {(set.items || []).map((item, ii) => (
+                  <div className="editrow" key={ii}>
+                    <textarea
+                      className="small"
+                      value={item.q || ""}
+                      onChange={(e) => patchItem(si, ii, { q: e.target.value })}
+                      placeholder="задание"
+                    />
+                    {showAnswers && (
+                      <input
+                        className="small"
+                        style={{ flex: "0 0 28%" }}
+                        value={item.a || ""}
+                        onChange={(e) => patchItem(si, ii, { a: e.target.value })}
+                        placeholder="ответ"
+                      />
+                    )}
+                    <button
+                      className="rowdel"
+                      onClick={() =>
+                        patchSet(si, { items: set.items.filter((_, j) => j !== ii) })
+                      }
+                      aria-label="Удалить задание"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className="ghost small"
+                  onClick={() => patchSet(si, { items: [...(set.items || []), { q: "", a: "" }] })}
+                >
+                  + Добавить задание
+                </button>
+              </>
+            ) : (
+              <ol className="clean">
+                {(set.items || []).map((item, ii) => (
+                  <li key={ii}>
+                    {item.q}
+                    {showAnswers && item.a ? <span className="answer"> — {item.a}</span> : null}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        );
+      })}
+      <p className="hint">
+        В PDF ответы печатаются отдельно, на последней странице.
+      </p>
+    </div>
   );
 }
 
@@ -223,31 +447,28 @@ function toMarkdown(r, level) {
     out.push("");
   }
 
-  if (r.exercises) {
+  const sets = (r.exercises?.sets || []).filter((s) => s.items?.length);
+  if (sets.length) {
     out.push(`## Упражнения\n`);
-    if (r.exercises.gapFill?.length) {
-      out.push(`### Вставьте пропущенное слово\n`);
-      r.exercises.gapFill.forEach((g, i) => out.push(`${i + 1}. ${g.sentence}`));
-      out.push(`\n_Ответы: ${r.exercises.gapFill.map((g) => g.answer).join(", ")}_\n`);
+    for (const set of sets) {
+      const type = typeById(set.type);
+      out.push(`### ${type ? type.ru : set.type}\n`);
+      if (set.instruction) out.push(`_${set.instruction}_\n`);
+      set.items.forEach((it, i) => out.push(`${i + 1}. ${it.q}`));
+      out.push("");
     }
-    if (r.exercises.comprehension?.length) {
-      out.push(`### Вопросы по тексту\n`);
-      r.exercises.comprehension.forEach((q, i) => out.push(`${i + 1}. ${q.question}`));
-      out.push(
-        `\n_Ответы: ${r.exercises.comprehension.map((q, i) => `${i + 1}) ${q.answer}`).join("; ")}_\n`
-      );
-    }
-    if (r.exercises.trueFalse?.length) {
-      out.push(`### Правда или неправда\n`);
-      r.exercises.trueFalse.forEach((t, i) => out.push(`${i + 1}. ${t.statement}`));
-      out.push(
-        `\n_Ответы: ${r.exercises.trueFalse
-          .map((t, i) => `${i + 1}) ${t.answer ? "правда" : "неправда"}`)
-          .join("; ")}_\n`
-      );
-    }
-    if (r.exercises.speaking?.length) {
-      out.push(`### Говорение\n\n${r.exercises.speaking.map((s) => `- ${s}`).join("\n")}\n`);
+    // Answers last, so the sheet above can be handed out as it is.
+    const keyed = sets.filter((s) => hasAnswers(s.type) && s.items.some((i) => i.a?.trim()));
+    if (keyed.length) {
+      out.push(`## Ключи\n`);
+      for (const set of keyed) {
+        const type = typeById(set.type);
+        out.push(
+          `**${type ? type.ru : set.type}:** ${set.items
+            .map((it, i) => `${i + 1}) ${it.a}`)
+            .join("  ")}\n`
+        );
+      }
     }
   }
 
