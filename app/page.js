@@ -6,9 +6,8 @@ import Recorder from "@/components/Recorder";
 import Results from "@/components/Results";
 import WaveformEditor from "@/components/WaveformEditor";
 import {
-  SAMPLE_RATE,
-  decodeToMono16k,
-  encodeMp3,
+  decodeAudio,
+  encodeForTranscription,
   findChunkBoundaries,
   fullSegments,
   segmentsLength,
@@ -128,9 +127,9 @@ function App() {
     setSource(null);
     setSegments(null);
     try {
-      const pcm = await decodeToMono16k(blob, setPreparing);
+      const { pcm, rate } = await decodeAudio(blob, setPreparing);
       if (!pcm.length) throw new Error("Эта запись пустая.");
-      setSource({ name, pcm });
+      setSource({ name, pcm, rate });
       setSegments(fullSegments(pcm));
     } catch (err) {
       setError(err.message || "Не удалось прочитать этот звук.");
@@ -188,9 +187,9 @@ function App() {
     setPercent(0);
 
     try {
-      const { pcm } = source;
-      const duration = segmentsLength(segments) / SAMPLE_RATE;
-      const ranges = findChunkBoundaries(pcm, segments);
+      const { pcm, rate } = source;
+      const duration = segmentsLength(segments) / rate;
+      const ranges = findChunkBoundaries(pcm, segments, rate);
 
       // Transcribe piece by piece, feeding each piece the tail of the last one
       // so the model keeps its bearings across the seams.
@@ -204,7 +203,7 @@ function App() {
         );
         setPercent(Math.round((i / ranges.length) * 65));
 
-        const blob = await encodeMp3(pcm, segments, from, to);
+        const blob = await encodeForTranscription(pcm, rate, segments, from, to);
         const fd = new FormData();
         fd.append("file", blob, `part-${i + 1}.mp3`);
         fd.append("context", context);
@@ -388,6 +387,7 @@ function App() {
             <p className="hint">Вырежьте неудачные места, прежде чем продолжить.</p>
             <WaveformEditor
               pcm={source.pcm}
+              rate={source.rate}
               segments={segments}
               onChange={setSegments}
               disabled={busy}
