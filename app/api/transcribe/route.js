@@ -15,12 +15,12 @@ export async function POST(request) {
   try {
     form = await request.formData();
   } catch {
-    return Response.json({ error: "Couldn't read the upload." }, { status: 400 });
+    return Response.json({ error: "Не удалось прочитать загруженный файл." }, { status: 400 });
   }
 
   const file = form.get("file");
   if (!file || typeof file === "string") {
-    return Response.json({ error: "No audio chunk received." }, { status: 400 });
+    return Response.json({ error: "Аудио не получено." }, { status: 400 });
   }
 
   const context = String(form.get("context") || "");
@@ -50,7 +50,7 @@ export async function POST(request) {
     if (!res.ok) {
       const detail = await res.text();
       return Response.json(
-        { error: `Transcription failed (${res.status}). ${shorten(detail)}` },
+        { error: `Не удалось расшифровать (${res.status}). ${shorten(detail)}` },
         { status: 502 }
       );
     }
@@ -58,7 +58,7 @@ export async function POST(request) {
     const data = await res.json();
     return Response.json({ text: (data.text || "").trim() });
   } catch (err) {
-    return Response.json({ error: err.message || "Transcription failed." }, { status: 500 });
+    return Response.json({ error: err.message || "Не удалось расшифровать." }, { status: 500 });
   }
 }
 

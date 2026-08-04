@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { MAX_IMAGES, approxBytes, fileToDataUrl } from "@/lib/images";
+import { plural } from "@/lib/ru";
 
 /**
  * Turn marked-up lesson pictures into a narration the teacher can read aloud.
@@ -19,7 +20,7 @@ export default function NotesComposer({ images, setImages, onCompose, busy, disa
 
     const room = MAX_IMAGES - images.length;
     if (room <= 0) {
-      setError(`That's the limit of ${MAX_IMAGES} images. Remove one first.`);
+      setError(`Больше ${MAX_IMAGES} изображений нельзя. Сначала удалите одно.`);
       return;
     }
 
@@ -33,7 +34,9 @@ export default function NotesComposer({ images, setImages, onCompose, busy, disa
       }
     }
     if (added.length) setImages([...images, ...added]);
-    if (list.length > room) setError(`Only the first ${room} were added — limit is ${MAX_IMAGES}.`);
+    if (list.length > room) {
+      setError(`Добавлены только первые ${room} — больше ${MAX_IMAGES} нельзя.`);
+    }
   }
 
   const totalMb = images.reduce((sum, i) => sum + approxBytes(i.dataUrl), 0) / 1048576;
@@ -64,10 +67,10 @@ export default function NotesComposer({ images, setImages, onCompose, busy, disa
           add(e.dataTransfer.files);
         }}
       >
-        <strong>Drop your class screenshots here, or click to choose</strong>
+        <strong>Перетащите сюда скриншоты с урока или нажмите, чтобы выбрать</strong>
         <span>
-          The picture plus your notes written on it. Up to {MAX_IMAGES} images — you can also
-          paste with Ctrl/Cmd+V.
+          Картинка вместе с вашими надписями. До {MAX_IMAGES} изображений — можно также вставить
+          через Ctrl/Cmd+V.
         </span>
       </div>
       <input
@@ -93,7 +96,7 @@ export default function NotesComposer({ images, setImages, onCompose, busy, disa
                   <span>{i + 1}</span>
                   <button
                     type="button"
-                    aria-label={`Remove image ${i + 1}`}
+                    aria-label={`Удалить изображение ${i + 1}`}
                     onClick={() => setImages(images.filter((x) => x.id !== img.id))}
                     disabled={busy || disabled}
                   >
@@ -104,11 +107,12 @@ export default function NotesComposer({ images, setImages, onCompose, busy, disa
             ))}
           </div>
           <p className="hint">
-            {images.length} image{images.length > 1 ? "s" : ""} · {totalMb.toFixed(1)} MB
-            {images.length > 1 ? " · read in the order shown" : ""}
+            {plural(images.length, "изображение", "изображения", "изображений")} ·{" "}
+            {totalMb.toFixed(1)} МБ
+            {images.length > 1 ? " · читаются в показанном порядке" : ""}
           </p>
           <button onClick={onCompose} disabled={busy || disabled}>
-            {busy ? "Reading your notes…" : "Write the narration"}
+            {busy ? "Читаем ваши заметки…" : "Написать рассказ"}
           </button>
         </>
       )}

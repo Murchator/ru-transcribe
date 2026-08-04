@@ -21,7 +21,7 @@ export async function POST(request) {
   const { task, text, glossary = [], level = "B1", removeFillers = true } = body;
 
   if (!text || !String(text).trim()) {
-    return Response.json({ error: "No text to work with." }, { status: 400 });
+    return Response.json({ error: "Нет текста для обработки." }, { status: 400 });
   }
 
   try {
@@ -37,10 +37,10 @@ export async function POST(request) {
           await chatJSON({ system: exercisesSystem(level), user: capped(text), temperature: 0.5 })
         );
       default:
-        return Response.json({ error: `Unknown task "${task}".` }, { status: 400 });
+        return Response.json({ error: `Неизвестная задача «${task}».` }, { status: 400 });
     }
   } catch (err) {
-    return Response.json({ error: err.message || "Something went wrong." }, { status: 500 });
+    return Response.json({ error: err.message || "Что-то пошло не так." }, { status: 500 });
   }
 }
 

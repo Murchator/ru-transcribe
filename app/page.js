@@ -13,6 +13,7 @@ import {
   fullSegments,
   segmentsLength,
 } from "@/lib/audio";
+import { plural } from "@/lib/ru";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1"];
 
@@ -49,24 +50,24 @@ function Login({ onSuccess }) {
     });
     setBusy(false);
     if (res.ok) onSuccess();
-    else setError("That password isn't right.");
+    else setError("Неверный пароль.");
   }
 
   return (
     <div className="wrap">
       <form className="panel login" onSubmit={submit}>
-        <h2>Sign in</h2>
-        <p className="hint">Enter the password you were given.</p>
+        <h2>Вход</h2>
+        <p className="hint">Введите пароль, который вам дали.</p>
         {error && <div className="error">{error}</div>}
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoFocus
-          placeholder="Password"
+          placeholder="Пароль"
         />
         <div style={{ marginTop: 14 }}>
-          <button disabled={busy || !password}>{busy ? "Checking…" : "Continue"}</button>
+          <button disabled={busy || !password}>{busy ? "Проверяем…" : "Войти"}</button>
         </div>
       </form>
     </div>
@@ -128,11 +129,11 @@ function App() {
     setSegments(null);
     try {
       const pcm = await decodeToMono16k(blob, setPreparing);
-      if (!pcm.length) throw new Error("That recording is empty.");
+      if (!pcm.length) throw new Error("Эта запись пустая.");
       setSource({ name, pcm });
       setSegments(fullSegments(pcm));
     } catch (err) {
-      setError(err.message || "Couldn't read that audio.");
+      setError(err.message || "Не удалось прочитать этот звук.");
     } finally {
       setPreparing("");
     }
@@ -158,7 +159,7 @@ function App() {
       setSource(null);
       setSegments(null);
     } catch (err) {
-      setError(err.message || "Couldn't read those notes.");
+      setError(err.message || "Не удалось прочитать заметки.");
     } finally {
       setComposing(false);
     }
@@ -169,7 +170,7 @@ function App() {
   /** Notes, vocabulary and exercises from a finished text. */
   async function addMaterials(base) {
     if (!makeExtras) return base;
-    setStatus("Writing notes, vocabulary and exercises…");
+    setStatus("Составляем конспект, лексику и упражнения…");
     const [notes, vocab, exercises] = await Promise.all([
       post("/api/enhance", { task: "notes", text: base.text, level }).catch(() => null),
       post("/api/enhance", { task: "vocab", text: base.text, level }).catch(() => null),
@@ -197,7 +198,9 @@ function App() {
       for (let i = 0; i < ranges.length; i++) {
         const [from, to] = ranges[i];
         setStatus(
-          ranges.length > 1 ? `Transcribing part ${i + 1} of ${ranges.length}…` : "Transcribing…"
+          ranges.length > 1
+            ? `Расшифровываем часть ${i + 1} из ${ranges.length}…`
+            : "Расшифровываем…"
         );
         setPercent(Math.round((i / ranges.length) * 65));
 
@@ -210,15 +213,15 @@ function App() {
 
         const res = await fetch("/api/transcribe", { method: "POST", body: fd });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Transcription failed.");
+        if (!res.ok) throw new Error(data.error || "Не удалось расшифровать.");
         pieces.push(data.text);
       }
 
       const raw = pieces.join(" ").replace(/\s+/g, " ").trim();
-      if (!raw) throw new Error("No speech was found in this recording.");
+      if (!raw) throw new Error("В этой записи не найдено речи.");
 
       // The correction pass — what turns raw output into a usable transcript.
-      setStatus("Correcting mishearings and punctuation…");
+      setStatus("Исправляем ошибки распознавания и пунктуацию…");
       setPercent(72);
       const corrected = await post("/api/enhance", {
         task: "correct",
@@ -239,10 +242,10 @@ function App() {
 
       setResult(await addMaterials(base));
       setPercent(100);
-      setStatus("Done.");
+      setStatus("Готово.");
       setTab("transcript");
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || "Что-то пошло не так.");
       setStatus("");
     } finally {
       setRunning(false);
@@ -259,10 +262,10 @@ function App() {
       const base = { text: script.trim(), raw: null, corrections: [], duration: null, parts: 1 };
       setResult(await addMaterials(base));
       setPercent(100);
-      setStatus("Done.");
+      setStatus("Готово.");
       setTab("transcript");
     } catch (err) {
-      setError(err.message || "Something went wrong.");
+      setError(err.message || "Что-то пошло не так.");
       setStatus("");
     } finally {
       setRunning(false);
@@ -280,8 +283,8 @@ function App() {
       <header className="site">
         <h1>Расшифровка уроков</h1>
         <p>
-          Record audio, upload a file, or turn your marked-up class pictures into a narration —
-          then get notes, vocabulary and exercises.
+          Запишите аудио, загрузите файл или превратите картинки с урока в рассказ — а потом
+          получите конспект, лексику и упражнения.
         </p>
       </header>
 
@@ -289,7 +292,7 @@ function App() {
 
       {/* ---------------------------------------------------------- source */}
       <div className="panel">
-        <h2>{++n}. Where does this lesson start?</h2>
+        <h2>{++n}. С чего начинаем урок</h2>
 
         <div className="segmented">
           <button
@@ -297,21 +300,21 @@ function App() {
             onClick={() => switchMode("record")}
             disabled={busy}
           >
-            Record
+            Запись
           </button>
           <button
             className={mode === "upload" ? "active" : ""}
             onClick={() => switchMode("upload")}
             disabled={busy}
           >
-            Upload audio
+            Загрузить аудио
           </button>
           <button
             className={mode === "notes" ? "active" : ""}
             onClick={() => switchMode("notes")}
             disabled={busy}
           >
-            From class notes
+            По заметкам с урока
           </button>
         </div>
 
@@ -334,8 +337,8 @@ function App() {
                 if (f) load(f, f.name);
               }}
             >
-              <strong>Drop an audio file here, or click to choose</strong>
-              <span>MP3, M4A, WAV, MP4, OGG. Long recordings are fine.</span>
+              <strong>Перетащите аудиофайл сюда или нажмите, чтобы выбрать</strong>
+              <span>MP3, M4A, WAV, MP4, OGG. Длинные записи тоже подойдут.</span>
             </div>
             <input
               ref={inputRef}
@@ -379,10 +382,10 @@ function App() {
                 }}
                 disabled={busy}
               >
-                Discard
+                Убрать
               </button>
             </div>
-            <p className="hint">Cut out false starts or mistakes before you go on.</p>
+            <p className="hint">Вырежьте неудачные места, прежде чем продолжить.</p>
             <WaveformEditor
               pcm={source.pcm}
               segments={segments}
@@ -396,10 +399,10 @@ function App() {
 
       {/* --------------------------------------------------- lesson context */}
       <div className="panel">
-        <h2>{++n}. About this lesson</h2>
+        <h2>{++n}. Об этом уроке</h2>
         <p className="hint">
-          Optional, but this is what makes the difference. Names, places, book titles and subject
-          terms — one per line.
+          Необязательно, но именно это даёт лучший результат. Имена, названия, термины — по одному
+          в строке.
         </p>
         <textarea
           value={glossary}
@@ -407,7 +410,7 @@ function App() {
           placeholder={"Бильбо Бэггинс\nчайка\nсушёная рыба\nВладивосток"}
         />
         <div style={{ marginTop: 14 }}>
-          <label htmlFor="ctx">What is this lesson about?</label>
+          <label htmlFor="ctx">О чём этот урок?</label>
           <input
             id="ctx"
             type="text"
@@ -418,7 +421,7 @@ function App() {
         </div>
         <div className="row" style={{ marginTop: 14 }}>
           <div style={{ flex: "0 0 160px" }}>
-            <label htmlFor="level">Student level</label>
+            <label htmlFor="level">Уровень ученика</label>
             <select id="level" value={level} onChange={(e) => setLevel(e.target.value)}>
               {LEVELS.map((l) => (
                 <option key={l} value={l}>
@@ -437,7 +440,7 @@ function App() {
               onChange={(e) => setRemoveFillers(e.target.checked)}
             />
             <label htmlFor="fillers">
-              Remove filler words and false starts («вот», «значит», repeats)
+              Убирать слова-паразиты и оговорки («вот», «значит», повторы)
             </label>
           </div>
         )}
@@ -446,15 +449,15 @@ function App() {
       {/* -------------------------------------------------------- narration */}
       {hasScript && (
         <div className="panel">
-          <h2>{++n}. Your narration</h2>
+          <h2>{++n}. Ваш рассказ</h2>
           <p className="hint">
-            Written from your notes, in a style meant to be read aloud. Edit it freely — nothing
-            uses it until you press a button below.
+            Написан по вашим заметкам так, чтобы его было удобно читать вслух. Правьте как хотите
+            — ничего не начнётся, пока вы не нажмёте кнопку ниже.
           </p>
 
           {unclear.length > 0 && (
             <div className="warn">
-              <strong>Couldn&apos;t read these bits of your notes:</strong>
+              <strong>Не удалось разобрать эти места в заметках:</strong>
               <ul className="clean" style={{ marginTop: 6, marginBottom: 0 }}>
                 {unclear.map((u, i) => (
                   <li key={i}>{u}</li>
@@ -469,29 +472,31 @@ function App() {
             onChange={(e) => setScript(e.target.value)}
             spellCheck={false}
           />
-          <p className="hint">{script.trim().split(/\s+/).length} words</p>
+          <p className="hint">
+            {plural(script.trim().split(/\s+/).length, "слово", "слова", "слов")}
+          </p>
 
           <div className="toolbar" style={{ marginTop: 8, marginBottom: 0 }}>
             <button className="ghost small" onClick={compose} disabled={busy}>
-              {composing ? "Rewriting…" : "Rewrite from notes"}
+              {composing ? "Переписываем…" : "Переписать заново"}
             </button>
             <button
               className="ghost small"
               onClick={() => setRecordingScript((v) => !v)}
               disabled={busy}
             >
-              {recordingScript ? "Hide recorder" : "Record audio for this text"}
+              {recordingScript ? "Скрыть запись" : "Записать аудио к этому тексту"}
             </button>
             <button className="ghost small" onClick={() => copy(script)}>
-              Copy
+              Копировать
             </button>
           </div>
 
           {recordingScript && (
             <div className="editor">
               <p className="hint">
-                Read the text above out loud. When you&apos;re done you can trim it and download
-                the MP3 for your students.
+                Прочитайте текст выше вслух. Потом можно вырезать лишнее и скачать MP3 для
+                учеников.
               </p>
               {!source && <Recorder onFinish={load} disabled={busy} />}
             </div>
@@ -501,7 +506,7 @@ function App() {
 
       {/* ----------------------------------------------------------- create */}
       <div className="panel">
-        <h2>{++n}. Create</h2>
+        <h2>{++n}. Создать материалы</h2>
         <div className="checkline">
           <input
             id="extras"
@@ -509,21 +514,21 @@ function App() {
             checked={makeExtras}
             onChange={(e) => setMakeExtras(e.target.checked)}
           />
-          <label htmlFor="extras">Make notes, a vocabulary list and exercises</label>
+          <label htmlFor="extras">Сделать конспект, список лексики и упражнения</label>
         </div>
 
         <div style={{ marginTop: 18 }}>
           {hasScript ? (
             <button onClick={runScript} disabled={busy || !script.trim()}>
-              {running ? "Working…" : "Use this text"}
+              {running ? "Работаем…" : "Использовать этот текст"}
             </button>
           ) : mode === "notes" ? (
             <p className="hint" style={{ margin: 0 }}>
-              Add your class pictures above and press <strong>Write the narration</strong> first.
+              Добавьте картинки с урока выше и нажмите <strong>«Написать рассказ»</strong>.
             </p>
           ) : (
             <button onClick={runAudio} disabled={!source || busy}>
-              {running ? "Working…" : "Transcribe"}
+              {running ? "Работаем…" : "Расшифровать"}
             </button>
           )}
         </div>
@@ -549,8 +554,8 @@ function App() {
       )}
 
       <p className="footnote">
-        Audio and images are processed in your browser and sent to OpenAI only for transcription
-        and writing. Nothing is stored on the server.
+        Звук и картинки обрабатываются в вашем браузере и отправляются в OpenAI только для
+        распознавания и написания текста. На сервере ничего не сохраняется.
       </p>
     </div>
   );
@@ -565,7 +570,7 @@ async function post(url, body) {
     body: JSON.stringify(body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed.");
+  if (!res.ok) throw new Error(data.error || "Запрос не удался.");
   return data;
 }
 

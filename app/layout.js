@@ -1,8 +1,9 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Расшифровка уроков — Russian Transcription",
-  description: "Clean Russian transcripts, notes, vocabulary and exercises from audio.",
+  title: "Расшифровка уроков",
+  description:
+    "Расшифровка аудио, конспект, лексика и упражнения для уроков русского языка.",
 };
 
 // `maximumScale` is left alone deliberately — pinch-zoom stays available, which

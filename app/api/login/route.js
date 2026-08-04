@@ -9,7 +9,7 @@ export async function POST(request) {
   if (expected && !safeEqual(String(password || ""), expected)) {
     // Small delay so the endpoint isn't a fast password oracle.
     await new Promise((r) => setTimeout(r, 600));
-    return Response.json({ error: "Wrong password." }, { status: 401 });
+    return Response.json({ error: "Неверный пароль." }, { status: 401 });
   }
 
   return Response.json(

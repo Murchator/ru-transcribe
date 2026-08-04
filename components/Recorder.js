@@ -141,10 +141,10 @@ export default function Recorder({ onFinish, disabled }) {
       setState("idle");
       setError(
         err?.name === "NotAllowedError"
-          ? "Microphone access was blocked. Allow it in your browser's address bar, then try again."
+          ? "Доступ к микрофону запрещён. Разрешите его в адресной строке браузера и попробуйте снова."
           : err?.name === "NotFoundError"
-            ? "No microphone found."
-            : `Couldn't start recording: ${err?.message || err}`
+            ? "Микрофон не найден."
+            : `Не удалось начать запись: ${err?.message || err}`
       );
     }
   }
@@ -174,8 +174,8 @@ export default function Recorder({ onFinish, disabled }) {
   if (!supported) {
     return (
       <p className="hint">
-        This browser can't record audio. Use Chrome, Edge, Safari or Firefox — or upload a file
-        instead.
+        Этот браузер не умеет записывать звук. Используйте Chrome, Edge, Safari или Firefox — или
+        загрузите готовый файл.
       </p>
     );
   }
@@ -186,28 +186,28 @@ export default function Recorder({ onFinish, disabled }) {
 
       {state === "idle" ? (
         <>
-          <label htmlFor="mic">Microphone</label>
+          <label htmlFor="mic">Микрофон</label>
           <select
             id="mic"
             value={deviceId}
             onChange={(e) => setDeviceId(e.target.value)}
             onFocus={refreshDevices}
           >
-            <option value="">Default microphone</option>
+            <option value="">Микрофон по умолчанию</option>
             {devices.map((d, i) => (
               <option key={d.deviceId || i} value={d.deviceId}>
-                {d.label || `Microphone ${i + 1}`}
+                {d.label || `Микрофон ${i + 1}`}
               </option>
             ))}
           </select>
           {devices.length === 0 && (
             <p className="hint" style={{ marginTop: 8 }}>
-              Microphone names appear after you record once and grant permission.
+              Названия микрофонов появятся после первой записи, когда вы разрешите доступ.
             </p>
           )}
           <div style={{ marginTop: 16 }}>
             <button onClick={start} disabled={disabled}>
-              ● Start recording
+              ● Начать запись
             </button>
           </div>
         </>
@@ -220,26 +220,26 @@ export default function Recorder({ onFinish, disabled }) {
             <span className={`recdot${state === "recording" ? " live" : ""}`} />
             <strong className="rectime">{formatDuration(elapsed)}</strong>
             <span className="hint" style={{ margin: 0 }}>
-              {state === "paused" ? "Paused" : "Recording…"}
+              {state === "paused" ? "Пауза" : "Идёт запись…"}
             </span>
             <span style={{ flex: 1 }} />
             {canPause &&
               (state === "recording" ? (
                 <button className="ghost small" onClick={pause}>
-                  Pause
+                  Пауза
                 </button>
               ) : (
                 <button className="ghost small" onClick={resume}>
-                  Resume
+                  Продолжить
                 </button>
               ))}
             <button className="small" onClick={stop}>
-              Stop
+              Стоп
             </button>
           </div>
           <p className="hint" style={{ marginBottom: 0 }}>
-            Speak normally, about 20–30 cm from the microphone. You can trim out any mistakes
-            after you stop.
+            Говорите обычным голосом, на расстоянии 20–30 см от микрофона. Оговорки можно вырезать
+            после остановки.
           </p>
         </div>
       )}

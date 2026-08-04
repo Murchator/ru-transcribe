@@ -1,15 +1,16 @@
 "use client";
 
 import { formatDuration } from "@/lib/audio";
+import { plural } from "@/lib/ru";
 
 export default function Results({ result, tab, setTab, level, fileName }) {
   const tabs = [
-    ["transcript", "Text"],
-    ["corrections", `Corrections (${result.corrections.length})`],
-    ["notes", "Notes"],
-    ["vocab", "Vocabulary"],
-    ["exercises", "Exercises"],
-    ["raw", "Raw output"],
+    ["transcript", "Текст"],
+    ["corrections", `Исправления (${result.corrections.length})`],
+    ["notes", "Конспект"],
+    ["vocab", "Лексика"],
+    ["exercises", "Упражнения"],
+    ["raw", "Без обработки"],
   ].filter(([id]) => {
     if (id === "notes") return !!result.notes;
     if (id === "vocab") return !!result.vocab;
@@ -27,29 +28,29 @@ export default function Results({ result, tab, setTab, level, fileName }) {
     <div className="panel printable">
       <div className="toolbar">
         <button className="ghost small" onClick={() => copy(result.text)}>
-          Copy text
+          Копировать текст
         </button>
         <button
           className="ghost small"
           onClick={() => download(`${base}.txt`, result.text, "text/plain")}
         >
-          Download .txt
+          Скачать .txt
         </button>
         <button
           className="ghost small"
           onClick={() => download(`${base}.md`, toMarkdown(result, level), "text/markdown")}
         >
-          Download everything (.md)
+          Скачать всё (.md)
         </button>
         <button className="ghost small" onClick={() => window.print()}>
-          Print / Save as PDF
+          Печать или PDF
         </button>
       </div>
 
       <p className="hint">
-        {result.duration != null ? `${formatDuration(result.duration)} of audio · ` : ""}
-        {result.parts > 1 ? `${result.parts} parts · ` : ""}
-        {result.text.trim().split(/\s+/).length} words
+        {result.duration != null ? `${formatDuration(result.duration)} звука · ` : ""}
+        {result.parts > 1 ? `${plural(result.parts, "часть", "части", "частей")} · ` : ""}
+        {plural(result.text.trim().split(/\s+/).length, "слово", "слова", "слов")}
       </p>
 
       <div className="tabs">
@@ -73,7 +74,7 @@ export default function Results({ result, tab, setTab, level, fileName }) {
       {active === "corrections" && (
         <div className="corr">
           {result.corrections.length === 0 ? (
-            <p className="hint">Nothing substantive needed changing.</p>
+            <p className="hint">Существенных исправлений не понадобилось.</p>
           ) : (
             <ul className="clean">
               {result.corrections.map((c, i) => (

@@ -281,35 +281,35 @@ export default function WaveformEditor({ pcm, segments, onChange, disabled, expo
         <span>{formatClock(playhead / SAMPLE_RATE)}</span>
         <span className="hint" style={{ margin: 0 }}>
           {hasSelection
-            ? `Selected ${formatClock(selDuration)}`
-            : "Drag across the wave to select · tap to move the playhead"}
+            ? `Выделено ${formatClock(selDuration)}`
+            : "Проведите по волне, чтобы выделить · нажмите, чтобы поставить курсор"}
         </span>
         <span>{formatDuration(duration)}</span>
       </div>
 
       <div className="toolbar" style={{ marginTop: 12 }}>
         <button className="ghost small" onClick={togglePlay} disabled={disabled || !total}>
-          {playing ? "■ Stop" : hasSelection ? "▶ Play selection" : "▶ Play"}
+          {playing ? "■ Стоп" : hasSelection ? "▶ Слушать выделенное" : "▶ Слушать"}
         </button>
         <button
           className="ghost small"
           onClick={() => apply(deleteRange(segments, selection[0], selection[1]))}
           disabled={disabled || !hasSelection}
         >
-          Delete selection
+          Удалить выделенное
         </button>
         <button
           className="ghost small"
           onClick={() => apply(cropRange(segments, selection[0], selection[1]))}
           disabled={disabled || !hasSelection}
         >
-          Keep only selection
+          Оставить только выделенное
         </button>
         <button className="ghost small" onClick={undo} disabled={disabled || !history.length}>
-          Undo
+          Отменить
         </button>
         <button className="ghost small" onClick={exportMp3} disabled={disabled || exporting || !total}>
-          {exporting ? "Saving…" : "Download MP3"}
+          {exporting ? "Сохраняем…" : "Скачать MP3"}
         </button>
       </div>
     </div>
