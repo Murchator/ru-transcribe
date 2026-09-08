@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { formatDuration } from "@/lib/audio";
 import { hasAnswers, typeById } from "@/lib/exercises";
+import { isAdvanced } from "@/lib/labels";
 import { plural } from "@/lib/ru";
 
 /**
@@ -315,6 +316,7 @@ function VocabTab({ vocab, editing, onChange }) {
 
 function ExercisesTab({ exercises, level, editing, onChange }) {
   const sets = exercises.sets || [];
+  const beginner = !isAdvanced(level); // matches what the printed sheet will show
   const setSets = (next) => onChange({ ...exercises, sets: next });
   const patchSet = (si, p) => setSets(sets.map((s, j) => (j === si ? { ...s, ...p } : s)));
   const patchItem = (si, ii, p) =>
@@ -333,15 +335,41 @@ function ExercisesTab({ exercises, level, editing, onChange }) {
           <div key={si} className="editlist">
             <h3 className="section">{type ? type.ru : set.type}</h3>
             {editing ? (
-              <input
-                className="small"
-                value={set.instruction || ""}
-                onChange={(e) => patchSet(si, { instruction: e.target.value })}
-                placeholder="инструкция"
-                style={{ marginBottom: 10 }}
-              />
+              <div style={{ marginBottom: 10 }}>
+                <input
+                  className="small"
+                  value={set.instruction || ""}
+                  onChange={(e) => patchSet(si, { instruction: e.target.value })}
+                  placeholder="инструкция по-русски"
+                />
+                <input
+                  className="small"
+                  style={{ marginTop: 6 }}
+                  value={set.instructionEn || ""}
+                  onChange={(e) => patchSet(si, { instructionEn: e.target.value })}
+                  placeholder="instruction in English (A1–A2)"
+                />
+                <input
+                  className="small"
+                  style={{ marginTop: 6 }}
+                  value={set.example || ""}
+                  onChange={(e) => patchSet(si, { example: e.target.value })}
+                  placeholder="образец: задание → ответ"
+                />
+              </div>
             ) : (
-              set.instruction && <p className="hint">{set.instruction}</p>
+              <>
+                {beginner
+                  ? (set.instructionEn || set.instruction) && (
+                      <p className="hint">{set.instructionEn || set.instruction}</p>
+                    )
+                  : set.instruction && <p className="hint">{set.instruction}</p>}
+                {beginner && set.example && (
+                  <p className="hint">
+                    <strong>Example:</strong> {set.example}
+                  </p>
+                )}
+              </>
             )}
 
             {editing ? (
@@ -396,6 +424,7 @@ function ExercisesTab({ exercises, level, editing, onChange }) {
       })}
       <p className="hint">
         В PDF ответы печатаются отдельно, на последней странице.
+        {beginner ? " Для A1–A2 задание печатается по-английски, с образцом." : ""}
       </p>
     </div>
   );

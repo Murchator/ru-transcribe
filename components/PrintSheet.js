@@ -1,6 +1,6 @@
 "use client";
 
-import { exerciseHeading, labels } from "@/lib/labels";
+import { exerciseHeading, isAdvanced, labels } from "@/lib/labels";
 import { hasAnswers, typeById } from "@/lib/exercises";
 
 /**
@@ -15,6 +15,9 @@ import { hasAnswers, typeById } from "@/lib/exercises";
  */
 export default function PrintSheet({ result, level }) {
   const L = labels(level);
+  // A1/A2 read the task in English and get a worked example; from B1 the sheet
+  // is fully Russian and the instruction alone is enough.
+  const beginner = !isAdvanced(level);
   const sets = (result.exercises?.sets || []).filter((s) => s.items?.length);
   const keyed = sets.filter((s) => hasAnswers(s.type) && s.items.some((i) => i.a?.trim()));
 
@@ -81,7 +84,20 @@ export default function PrintSheet({ result, level }) {
                 <h3>
                   {si + 1}. {type ? exerciseHeading(type, level) : set.type}
                 </h3>
-                {set.instruction && <p className="instruction">{set.instruction}</p>}
+                {beginner ? (
+                  <>
+                    {(set.instructionEn || set.instruction) && (
+                      <p className="instruction">{set.instructionEn || set.instruction}</p>
+                    )}
+                    {set.example && (
+                      <p className="example">
+                        <strong>{L.sample}:</strong> {set.example}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  set.instruction && <p className="instruction">{set.instruction}</p>
+                )}
                 <ol>
                   {set.items.map((item, i) => (
                     <li key={i}>
