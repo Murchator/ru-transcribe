@@ -8,6 +8,8 @@
   --accent-soft: #fdf1e8;
   --good: #2f6b46;
   --radius: 10px;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+          "Noto Sans", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +19,7 @@ html, body {
   padding: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--sans);
   font-size: 16px;
   line-height: 1.55;
 }
@@ -175,7 +177,7 @@ textarea.script {
   min-height: 300px;
   font-size: 16.5px;
   line-height: 1.7;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--sans);
 }
 
 /* --- record / upload switch --- */
@@ -270,8 +272,8 @@ textarea.small, input.small { padding: 7px 10px; }
     display: block !important;
     background: #fff;
     color: #000;
-    font-family: Georgia, "Times New Roman", serif;
-    font-size: 11.5pt;
+    font-family: var(--sans);
+    font-size: 11pt;
     line-height: 1.5;
     /* The page margin lives here rather than in @page — see below. */
     padding: 15mm 16mm;
@@ -286,7 +288,7 @@ textarea.small, input.small { padding: 7px 10px; }
   @page { margin: 0; }
 
   .print-sheet h1 { font-size: 18pt; margin: 0 0 2mm; }
-  .print-sheet .meta { font-size: 9pt; color: #555; margin: 0 0 7mm; font-family: sans-serif; }
+  .print-sheet .meta { font-size: 9pt; color: #555; margin: 0 0 7mm; }
   .print-sheet h2 {
     font-size: 13pt; margin: 0 0 3mm;
     padding-bottom: 1.5mm; border-bottom: 1px solid #000;
@@ -301,13 +303,18 @@ textarea.small, input.small { padding: 7px 10px; }
   .print-sheet table { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
   .print-sheet th {
     text-align: left; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.05em;
-    border-bottom: 1px solid #000; padding: 1.5mm 2mm; font-family: sans-serif;
+    border-bottom: 1px solid #000; padding: 1.5mm 2mm;
   }
   .print-sheet td { padding: 1.5mm 2mm; border-bottom: 1px solid #ddd; vertical-align: top; }
   .print-sheet tr { break-inside: avoid; }
   .print-sheet .sub { font-size: 9pt; color: #555; }
 
-  .print-sheet .instruction { font-style: italic; color: #333; margin-bottom: 2mm; }
+  .print-sheet .instruction { color: #333; margin-bottom: 1.5mm; }
+  .print-sheet .example {
+    margin: 0 0 3mm; padding: 1.5mm 3mm;
+    background: #f4f4f2; border-left: 2px solid #999;
+    font-size: 10pt;
+  }
   .print-sheet .exset { margin-bottom: 6mm; break-inside: avoid-page; }
   /* Room to write the answer in. */
   .print-sheet .writeline {
